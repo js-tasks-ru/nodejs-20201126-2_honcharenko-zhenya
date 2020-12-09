@@ -13,6 +13,12 @@ server.on('request', (req, res) => {
 
   switch (req.method) {
     case 'POST':
+      if (pathname.includes('/')) {
+        res.statusCode = 400;
+        res.end('No included directory');
+        return;
+      }
+
       const isFileExist = fs.existsSync(filepath);
 
       if (isFileExist) {
@@ -21,27 +27,45 @@ server.on('request', (req, res) => {
         return;
       }
 
+      let isFileCreated = false;
+
       const onData = (chunk) => {
         writeStream.write(chunk);
       };
+
+      const on500Err = () => {
+        res.statusCode = 500;
+        res.end('Server error');
+      }
 
       const limitStream = new LimitSizeStream({limit: 2 ** 20, encoding: 'utf-8'});
       const writeStream = fs.createWriteStream(filepath);
 
       writeStream.on('finish', () => {
-        res.statusCode = 200;
+        res.statusCode = 201;
         res.end('File uploaded correct!');
       });
-
-      limitStream.on('data', onData);
-
-      limitStream.on('end', () => {
-        writeStream.end();
+      writeStream.on('error', () => {
+        on500Err();
       });
 
+
+      
+      limitStream.on('data', onData);
+      limitStream.on('end', () => {
+        isFileCreated = true;
+        writeStream.end();
+      });
       limitStream.on('error', (err) => {
-        res.statusCode = 413;
-        res.end('File too big');
+        writeStream.destroy();
+        fs.unlink(filepath, (err) => {
+          if (err) {
+            on500Err();
+          } else {
+            res.statusCode = 413;
+            res.end('File too big');
+          }
+        });
       });
 
       req.on('data', (chunk) => {
@@ -50,11 +74,13 @@ server.on('request', (req, res) => {
       req.on('end', () => {
         limitStream.end();
       });
-      req.on('abort', () => {
-        limitStream.destroy();
-        writeStream.destroy();
+      req.on('close', () => {
+        if (!isFileCreated) {
+          limitStream.destroy();
+          writeStream.destroy();
+          fs.unlink(filepath, () => {});
+        }
       });
-      // res.end('DO LATER');
       break;
 
     default:
