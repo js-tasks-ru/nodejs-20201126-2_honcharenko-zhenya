@@ -15,12 +15,14 @@ server.on('request', (req, res) => {
       if (pathname.includes('/')) {
         res.statusCode = 400;
         res.end('No included directory');
+        return;
       }
 
       const isFileExist = fs.existsSync(filepath);
       if (!isFileExist) {
         res.statusCode = 404;
         res.end('File not exist');
+        return;
       }
 
       const readStream = fs.createReadStream(filepath);
