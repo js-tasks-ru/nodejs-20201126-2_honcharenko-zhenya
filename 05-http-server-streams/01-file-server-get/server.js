@@ -1,6 +1,7 @@
 const url = require('url');
 const http = require('http');
 const path = require('path');
+const fs = require('fs');
 
 const server = new http.Server();
 
@@ -11,7 +12,38 @@ server.on('request', (req, res) => {
 
   switch (req.method) {
     case 'GET':
+      if (pathname.includes('/')) {
+        res.statusCode = 400;
+        res.end('No included directory');
+        return;
+      }
 
+      const isFileExist = fs.existsSync(filepath);
+      if (!isFileExist) {
+        res.statusCode = 404;
+        res.end('File not exist');
+        return;
+      }
+
+      const readStream = fs.createReadStream(filepath);
+
+      readStream.once('end', () => {
+        res.statusCode = 200;
+        res.end();
+      });
+
+      readStream.on('error', (err) => {
+        res.statusCode = 500;
+        res.end(err);
+      });
+
+      readStream.pipe(res);
+
+      res.on('end', () => {
+        if (!res.complete) {
+          readStream.destroy();
+        }
+      });
       break;
 
     default:
