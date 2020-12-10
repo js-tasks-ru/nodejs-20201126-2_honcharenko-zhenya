@@ -60,16 +60,14 @@ server.on('request', (req, res) => {
           }
         });
       });
-      limitStream.pipe(writeStream);
+      
+      req.pipe(limitStream).pipe(writeStream);
 
-      req.on('data', (chunk) => {
-        limitStream.write(chunk);
-      });
       req.on('end', () => {
         limitStream.end();
       });
       req.on('close', () => {
-        if (!isFileCreated) {
+        if (!writeStream.writableFinished) {
           limitStream.destroy();
           writeStream.destroy();
           fs.unlink(filepath, () => {});
