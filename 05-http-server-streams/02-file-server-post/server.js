@@ -29,16 +29,12 @@ server.on('request', (req, res) => {
 
       let isFileCreated = false;
 
-      const onData = (chunk) => {
-        writeStream.write(chunk);
-      };
-
       const on500Err = () => {
         res.statusCode = 500;
         res.end('Server error');
       }
 
-      const limitStream = new LimitSizeStream({limit: 2 ** 20, encoding: 'utf-8'});
+      const limitStream = new LimitSizeStream({ limit: 2 ** 20 });
       const writeStream = fs.createWriteStream(filepath);
 
       writeStream.on('finish', () => {
@@ -48,10 +44,7 @@ server.on('request', (req, res) => {
       writeStream.on('error', () => {
         on500Err();
       });
-
-
       
-      limitStream.on('data', onData);
       limitStream.on('end', () => {
         isFileCreated = true;
         writeStream.end();
@@ -67,6 +60,7 @@ server.on('request', (req, res) => {
           }
         });
       });
+      limitStream.pipe(writeStream);
 
       req.on('data', (chunk) => {
         limitStream.write(chunk);

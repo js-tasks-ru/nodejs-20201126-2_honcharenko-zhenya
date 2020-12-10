@@ -27,14 +27,6 @@ server.on('request', (req, res) => {
 
       const readStream = fs.createReadStream(filepath);
 
-      readStream.on('readable', () => {
-        let chunk = readStream.read();
-        while (null !== chunk) {
-          res.write(chunk);
-          chunk = readStream.read();
-        }
-      });
-
       readStream.once('end', () => {
         res.statusCode = 200;
         res.end();
@@ -44,6 +36,8 @@ server.on('request', (req, res) => {
         res.statusCode = 500;
         res.end(err);
       });
+
+      readStream.pipe(res);
 
       res.on('end', () => {
         if (!res.complete) {
