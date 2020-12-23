@@ -74,7 +74,7 @@ router.post('/oauth_callback', handleMongooseValidationError, oauthCallback);
 
 router.get('/me', mustBeAuthenticated, me);
 
-router.post('/register', register);
+router.post('/register', handleMongooseValidationError, register);
 router.post('/confirm', confirm);
 
 app.use(router.routes());
@@ -85,7 +85,7 @@ const fs = require('fs');
 const index = fs.readFileSync(path.join(__dirname, 'public/index.html'));
 app.use(async (ctx) => {
   if (ctx.url.startsWith('/api') || ctx.method !== 'GET') return;
-  
+
   ctx.set('content-type', 'text/html');
   ctx.body = index;
 });
